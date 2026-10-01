@@ -1,0 +1,55 @@
+{
+  "selected_candidate": "depth_3_estimators_80",
+  "parameters": {
+    "learning_rate": 0.03,
+    "min_child_weight": 10,
+    "reg_lambda": 20,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "objective": "reg:squarederror",
+    "random_state": 42,
+    "n_jobs": 2,
+    "n_estimators": 80,
+    "max_depth": 3
+  },
+  "target_mode": "next_day_price - coffee_price; add predicted change to current price",
+  "selection_metric": "validation_mae",
+  "validation_candidates": [
+    {
+      "name": "depth_2_estimators_80",
+      "validation_mae": 1211.5224640196648,
+      "validation_rmse": 1619.4438106552552,
+      "validation_r2": 0.9157958697600239
+    },
+    {
+      "name": "depth_2_estimators_120",
+      "validation_mae": 1344.2230404148931,
+      "validation_rmse": 1745.7267661740914,
+      "validation_r2": 0.9021515010483454
+    },
+    {
+      "name": "depth_2_estimators_200",
+      "validation_mae": 1529.7123399134996,
+      "validation_rmse": 1934.4902732711605,
+      "validation_r2": 0.8798469700498097
+    },
+    {
+      "name": "depth_3_estimators_80",
+      "validation_mae": 1203.761557665424,
+      "validation_rmse": 1637.1502855595263,
+      "validation_r2": 0.9139444820958007
+    },
+    {
+      "name": "depth_3_estimators_120",
+      "validation_mae": 1348.5894635604775,
+      "validation_rmse": 1778.6040530536175,
+      "validation_r2": 0.8984312327183696
+    },
+    {
+      "name": "depth_3_estimators_200",
+      "validation_mae": 1476.0763927473538,
+      "validation_rmse": 1904.0125291003144,
+      "validation_r2": 0.8836031492853873
+    }
+  ]
+}
