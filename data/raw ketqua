@@ -1,0 +1,41 @@
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Load data
+df_raw = pd.read_csv("C:/Users/ADMIN/OneDrive/Desktop/DAP391m/coffee_daklak_raw12345.csv") 
+
+# 2. Dataset dimensions
+print(f"Raw dataset shape: {df_raw.shape[0]} rows, {df_raw.shape[1]} columns")
+
+# 1. Count duplicate rows
+num_duplicates = df_raw.duplicated().sum()
+print(f"Number of duplicate rows detected: {num_duplicates}")
+
+# Also check duplicates ignoring the identifier column
+num_dup_no_id = df_raw.drop(columns='date').duplicated().sum()
+print(f"Duplicate rows ignoring date: {num_dup_no_id}")
+print(f"Is date unique? {df_raw['date'].is_unique}")
+
+# 2. Drop duplicates (if any) and save to df_clean
+df_clean = df_raw.drop_duplicates().copy()
+print(f"Dataset shape after removing duplicates: {df_clean.shape}")
+
+missing_summary = pd.DataFrame({
+    'Missing Count': df_clean.isnull().sum(),
+    'Percentage (%)': (df_clean.isnull().sum() / len(df_clean) * 100).round(2)
+}).sort_values(by='Missing Count', ascending=False)
+
+print(missing_summary)
+
+total_missing = int(df_clean.isnull().sum().sum())
+print(f"Total missing values: {total_missing}")
+print("fill up")
+df_clean['price_change'] = df_clean['price_change'].fillna(0)
+print("thành công số ô trống: ", df_clean.isnull().sum().sum())
+
+df_clean.to_csv(r"C:/Users/ADMIN/OneDrive/Desktop/DAP391m/coffee_daklak_3y_complete.csv", index=False, encoding="utf-8-sig")
+print("Đã lưu file: D:\\edit\\coffee_daklak_clean.csv")
+
