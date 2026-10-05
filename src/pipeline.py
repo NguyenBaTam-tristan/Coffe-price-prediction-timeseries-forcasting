@@ -6,20 +6,22 @@ Chạy từ thư mục gốc project:
 Raw files chỉ được đọc, không bị sửa. Các file kết quả nằm trong data/processed
 và data/features để có thể kiểm tra từng bước riêng biệt.
 """
-
-from pathlib import Path
-
+# Lấy riêng lớp Path để làm việc với đường dẫn file
+from pathlib import Path 
 import pandas as pd
 
-
+# parent[1] là thư mục gốc của project
+# Tạo điểm neo gốc cố định để mọi đường dẫn khác trong dự án đều xuất phát từ đây, tránh lỗi đường dẫn tương đối khi chạy lệnh từ thư mục khác.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # Dùng dataset coffee đã được bổ sung đủ từng ngày trong khoảng nghiên cứu.
-COFFEE_RAW = PROJECT_ROOT / "data" / "raw" / "coffee" / "coffee_daklak_3y_complete.csv"
+COFFEE_RAW = PROJECT_ROOT / "data" / "raw" / "coffee" / "coffee_daklak_3y_complete.csv" 
 WEATHER_RAW = PROJECT_ROOT / "data" /"raw"/ "weather" /"weather.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 FEATURES_DIR = PROJECT_ROOT / "data" / "features"
 
+# Đổi lại hết các tên cột để dễ gõ code và tránh lõi khi modeling
 WEATHER_COLUMNS = {
+    # Đổi time thành date để đồng nhất khóa nối (merge key) với dữ liệu giá.
     "time": "date",
     "temperature_2m_max (°C)": "temperature_2m_max",
     "temperature_2m_min (°C)": "temperature_2m_min",
@@ -37,11 +39,11 @@ WEATHER_COLUMNS = {
 def clean_coffee():
     """Làm sạch giá, giữ một dòng cho mỗi ngày nguồn đã công bố."""
     coffee = pd.read_csv(COFFEE_RAW)
-    coffee["date"] = pd.to_datetime(coffee["date"], errors="coerce")
-    coffee["price"] = pd.to_numeric(coffee["price"], errors="coerce")
-    coffee = coffee.dropna(subset=["date", "price"]).copy()
-    coffee = coffee.drop_duplicates(subset="date", keep="last").sort_values("date")
-    return coffee[["date", "province", "product", "price", "unit", "source", "source_url"]]
+    coffee["date"] = pd.to_datetime(coffee["date"], errors="coerce") # chuyển kí tự thành định dạng thời gian, nếu sai thành NaT
+    coffee["price"] = pd.to_numeric(coffee["price"], errors="coerce") # chuyển về dạng số thực, sai thành NaN
+    coffee = coffee.dropna(subset=["date", "price"]).copy() # Loại bỏ các cột bị NaT, NaN, .copy() tạo bản sao độc lập trong bộ nhớ để tránh lỗi
+    coffee = coffee.drop_duplicates(subset="date", keep="last").sort_values("date") # drop_duplicates loại bỏ dòng trùng và giữ lại dòng cuối cùng, sau đó sắp xếp theo ngày
+    return coffee[["date", "province", "product", "price", "unit", "source", "source_url"]] # trả về coffee sạch
 
 def clean_coffee_remake():
     """Làm sạch giá, giữ một dòng cho mỗi ngày nguồn đã công bố."""
@@ -50,47 +52,48 @@ def clean_coffee_remake():
     coffee["price"] = pd.to_numeric(coffee["price"], errors="coerce")
     coffee = coffee.dropna(subset=["date", "price"]).copy()
     coffee = coffee.drop_duplicates(subset="date", keep="last").sort_values("date")
-    return coffee[["date", "price"]]
+    return coffee[["date", "price"]] # trả về mỗi date và price phục vụ modeling
 
 def clean_weather():
     """Đọc daily weather.csv, bỏ metadata và chuẩn hóa tên cột/kiểu dữ liệu."""
     # File Open-Meteo này có 2 dòng metadata trước dòng header daily.
     weather = pd.read_csv(WEATHER_RAW, skiprows=2)
-    missing_columns = set(WEATHER_COLUMNS) - set(weather.columns)
+    missing_columns = set(WEATHER_COLUMNS) - set(weather.columns) # kiểm tra tính toàn vẹn data
     if missing_columns:
         raise ValueError(f"Weather thiếu các cột bắt buộc: {sorted(missing_columns)}")
 
     weather = weather.rename(columns=WEATHER_COLUMNS)
-    weather["date"] = pd.to_datetime(weather["date"], errors="coerce")
-    numeric_columns = [column for column in WEATHER_COLUMNS.values() if column != "date"]
-    weather[numeric_columns] = weather[numeric_columns].apply(pd.to_numeric, errors="coerce")
-    weather = weather.dropna(subset=["date"])
+    weather["date"] = pd.to_datetime(weather["date"], errors="coerce") # ép date về dạng thời gian chuẩn
+    numeric_columns = [column for column in WEATHER_COLUMNS.values() if column != "date"] # gọi các cột là số
+    weather[numeric_columns] = weather[numeric_columns].apply(pd.to_numeric, errors="coerce") # chuyển về dạng số thực, nếu không thì NaN
+    # Loại bỏ các dòng không xác định được ngày, loại bỏ dữ liệu thời tiết bị ghi đè/trùng trong cùng một ngày (chỉ giữ bản ghi cuối), rồi sắp xếp tăng dần theo thời gian.
+    weather = weather.dropna(subset=["date"]) 
     weather = weather.drop_duplicates(subset="date", keep="last").sort_values("date")
     return weather[["date", *numeric_columns]]
 
 
 def build_features(merged):
     """Tạo feature chỉ từ hiện tại/quá khứ; không dùng dữ liệu tương lai."""
+    # Đảm bảo dữ liệu được sắp xếp tuần tự theo thời gian và tách riêng Series price để viết code ngắn gọn hơn.
     features = merged.sort_values("date").copy()
     price = features["coffee_price"]
 
     # shift dương chỉ lấy giá của các bản ghi trước đó, nên không leakage.
     for lag in (1, 2, 3, 7, 14, 30):
-        features[f"price_lag_{lag}"] = price.shift(lag)
+        features[f"price_lag_{lag}"] = price.shift(lag) #.shift(lag) dịch chuyển dữ liệu xuống dưới lag dòng.
     for window in (7, 14, 30):
         history = price.shift(1)
-        features[f"price_mean_{window}"] = history.rolling(window).mean()
+        features[f"price_mean_{window}"] = history.rolling(window).mean() # Cho biết xu hướng giá trung bình trong 7 ngày, 14 ngày và 30 ngày qua (Trend).
         if window in (7, 30):
-            features[f"price_std_{window}"] = history.rolling(window).std()
-
+            features[f"price_std_{window}"] = history.rolling(window).std() # Đo lường mức độ biến động (Volatility) của giá trong 1 tuần và 1 tháng gần nhất
     for column, name in (
         ("rain_sum", "rain"),
         ("temperature_2m_mean", "temperature_mean"),
         ("relative_humidity_2m_mean", "humidity_mean"),
     ):
-        features[f"{name}_7d"] = features[column].shift(1).rolling(7).mean()
-        features[f"{name}_30d"] = features[column].shift(1).rolling(30).mean()
-
+        features[f"{name}_7d"] = features[column].shift(1).rolling(7).mean() # tính trung bình 7 ngày trước không tính hôm nay
+        features[f"{name}_30d"] = features[column].shift(1).rolling(30).mean() # # tính trung bình 30 ngày trước không tính hôm nay
+    # trích xuất đặc trưng theo mùa vụ
     features["day_of_week"] = features["date"].dt.dayofweek
     features["day_of_month"] = features["date"].dt.day
     features["month"] = features["date"].dt.month
@@ -100,12 +103,13 @@ def build_features(merged):
 
     # Dataset coffee đầy đủ theo ngày nên target là giá của ngày kế tiếp.
     # date_gap_days vẫn được lưu để kiểm tra dữ liệu có bị đứt quãng hay không.
-    features["next_day_price"] = price.shift(-1)
-    features["date_gap_days"] = features["date"].shift(-1).sub(features["date"]).dt.days
-    return features.dropna().reset_index(drop=True)
+    features["next_day_price"] = price.shift(-1) # tạo nhãn mục tiêu
+    features["date_gap_days"] = features["date"].shift(-1).sub(features["date"]).dt.days # sub() là trừ, check ngày trống nếu không liên tiếp
+    return features.dropna().reset_index(drop=True) # drop các cột NaN vì rolling và shift khiến 30 dòng đầu bị trống, và không có next_day_price ở dòng cuối
 
 
 def main():
+    # Path.mkdir(). parents=True cho phép tạo tất cả các thư mục cha nếu chưa có; exist_ok=True không báo lỗi nếu thư mục đã tồn tại từ trước.
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     FEATURES_DIR.mkdir(parents=True, exist_ok=True)
 
