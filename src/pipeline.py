@@ -70,6 +70,7 @@ def build_features(merged):
     price = features["coffee_price"]
 
     # shift dương chỉ lấy giá của các bản ghi trước đó, nên không leakage.
+    # Chính xác ngày hôm qua, hôm kia, tuần trước giá là bao nhiêu? (Điểm dữ liệu tức thời)
     for lag in (1, 2, 3, 7, 14, 30):
         features[f"price_lag_{lag}"] = price.shift(lag) #.shift(lag) dịch chuyển dữ liệu xuống dưới lag dòng.
     for window in (7, 14, 30):
