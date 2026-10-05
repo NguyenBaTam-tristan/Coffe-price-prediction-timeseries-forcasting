@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # 1. Load data
-df_raw = pd.read_csv("C:/Users/ADMIN/OneDrive/Desktop/DAP391m/coffee_daklak_raw12345.csv") 
+df_raw = pd.read_csv("   ") #Điền Path vào đây
 
 # 2. Dataset dimensions
 print(f"Raw dataset shape: {df_raw.shape[0]} rows, {df_raw.shape[1]} columns")
