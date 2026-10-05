@@ -43,16 +43,7 @@ def clean_coffee():
     coffee["price"] = pd.to_numeric(coffee["price"], errors="coerce") # chuyển về dạng số thực, sai thành NaN
     coffee = coffee.dropna(subset=["date", "price"]).copy() # Loại bỏ các cột bị NaT, NaN, .copy() tạo bản sao độc lập trong bộ nhớ để tránh lỗi
     coffee = coffee.drop_duplicates(subset="date", keep="last").sort_values("date") # drop_duplicates loại bỏ dòng trùng và giữ lại dòng cuối cùng, sau đó sắp xếp theo ngày
-    return coffee[["date", "province", "product", "price", "unit", "source", "source_url"]] # trả về coffee sạch
-
-def clean_coffee_remake():
-    """Làm sạch giá, giữ một dòng cho mỗi ngày nguồn đã công bố."""
-    coffee = pd.read_csv(COFFEE_RAW)
-    coffee["date"] = pd.to_datetime(coffee["date"], errors="coerce")
-    coffee["price"] = pd.to_numeric(coffee["price"], errors="coerce")
-    coffee = coffee.dropna(subset=["date", "price"]).copy()
-    coffee = coffee.drop_duplicates(subset="date", keep="last").sort_values("date")
-    return coffee[["date", "price"]] # trả về mỗi date và price phục vụ modeling
+    return coffee[["date", "price"]] # trả về coffee sạch
 
 def clean_weather():
     """Đọc daily weather.csv, bỏ metadata và chuẩn hóa tên cột/kiểu dữ liệu."""
@@ -113,7 +104,7 @@ def main():
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     FEATURES_DIR.mkdir(parents=True, exist_ok=True)
 
-    coffee = clean_coffee_remake()
+    coffee = clean_coffee()
     weather = clean_weather()
     merged = coffee.merge(weather, on="date", how="inner").rename(columns={"price": "coffee_price"}).sort_values("date")
     features = build_features(merged)
