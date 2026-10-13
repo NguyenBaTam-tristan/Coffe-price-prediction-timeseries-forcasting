@@ -1,0 +1,17 @@
+{
+  "sequence_length": 30,
+  "architecture": [
+    "LSTM(64, return_sequences=True)",
+    "Dropout(0.2)",
+    "LSTM(32)",
+    "Dropout(0.2)",
+    "Dense(16, relu)",
+    "Dense(1)"
+  ],
+  "loss": "mse",
+  "optimizer": "adam",
+  "early_stopping": {
+    "monitor": "val_loss",
+    "patience": 8
+  }
+}

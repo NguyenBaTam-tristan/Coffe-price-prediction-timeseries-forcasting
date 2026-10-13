@@ -95,8 +95,6 @@ def build_features(merged):
     features["day_of_month"] = features["date"].dt.day
     features["month"] = features["date"].dt.month
     features["quarter"] = features["date"].dt.quarter
-    #features["sin_month"] = (2 * 3.141592653589793 * features["month"] / 12).map(__import__("math").sin)
-    #features["cos_month"] = (2 * 3.141592653589793 * features["month"] / 12).map(__import__("math").cos)
 
     # Dataset coffee đầy đủ theo ngày nên target là giá của ngày kế tiếp.
     # date_gap_days vẫn được lưu để kiểm tra dữ liệu có bị đứt quãng hay không.

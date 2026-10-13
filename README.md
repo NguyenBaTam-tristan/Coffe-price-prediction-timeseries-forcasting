@@ -7,7 +7,7 @@ Project Machine Learning dự đoán giá cà phê tại tỉnh Đắk Lắk the
 - Làm sạch và kiểm tra dữ liệu giá cà phê.
 - Kết hợp giá cà phê với thời tiết theo từng ngày.
 - Tạo lag features, rolling features và calendar features.
-- So sánh Linear Regression, Random Forest và XGBoost.
+- So sánh Linear Regression, Random Forest, XGBoost và mô hình LSTM theo chuỗi thời gian.
 - Đánh giá model bằng MAE, RMSE và R².
 - Tuân thủ chronological split, không shuffle dữ liệu time series và không dùng dữ liệu tương lai.
 
@@ -50,10 +50,11 @@ coffee_clean.csv  weather_clean.csv  merged_daily.csv
                          +-----------------+------------------+
                          |                 |                  |
                          v                 v                  v
-                           Linear Regression   Tree models
+                    Linear Regression   Tree models   LSTM sequence model
                                         |             Random Forest
                                         |               XGBoost
-                         +-----------------+------------------+
+                                        |                  |
+                                        +------------------+
                                              |
                                              v
                                   models/model_comparison.csv
@@ -72,7 +73,16 @@ coffee_clean.csv  weather_clean.csv  merged_daily.csv
 ├── models/                          # Metrics và model artifacts
 ├── src/
 │   ├── pipeline.py                  # Cleaning, merge, feature engineering
-│   └── train_models.py              # Huấn luyện và so sánh model
+│   ├── train_models.py              # Entry point huấn luyện model
+│   └── modeling/
+│       ├── config.py                # Cấu hình chung và đường dẫn
+│       ├── data.py                  # Load, chọn feature, chia dữ liệu
+│       ├── metrics.py               # Chỉ số đánh giá
+│       ├── artifacts.py             # Lưu model và kết quả
+│       ├── runner.py                # Điều phối quy trình huấn luyện
+│       └── trainers/                # Mỗi model có trainer riêng
+├── tests/
+│   └── test_modeling.py             # Unit test cho chuẩn bị dữ liệu và metrics
 ├── requirements.txt
 └── README.md
 ```
@@ -138,8 +148,19 @@ Kết quả được lưu tại:
 - `models/linear_regression/`
 - `models/random_forest/`
 - `models/xgboost/`
+- `models/lstm/` (khi TensorFlow đã được cài đặt)
 
-Mỗi model gồm `model.pkl`, `metrics.json` và `feature_columns.json`.
+Mỗi model gồm `model.pkl` hoặc `model.keras`, `metrics.json` và `feature_columns.json`.
+Trainer được đăng ký trong `src/modeling/trainers/__init__.py`. Để thêm model,
+tạo trainer mới nhận `train` và `test`, trả về metrics dict (hoặc `None` nếu
+model optional bị bỏ qua), sau đó thêm trainer vào `MODEL_TRAINERS`.
+Các bước chuẩn bị dữ liệu, lưu artifact và sắp xếp bảng so sánh được dùng chung.
+
+Chạy unit test từ thư mục gốc project:
+
+```powershell
+python -m unittest discover -s tests
+```
 
 ## Feature engineering
 
