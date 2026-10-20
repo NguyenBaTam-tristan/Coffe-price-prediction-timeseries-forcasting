@@ -1,8 +1,9 @@
 {
   "sequence_length": 30,
+  "target_mode": "next_day_price - coffee_price; add predicted change to current price",
+  "target_scale": 1000.0,
   "architecture": [
-    "LSTM(64, return_sequences=True)",
-    "Dropout(0.2)",
+    "Normalization(axis=-1)",
     "LSTM(32)",
     "Dropout(0.2)",
     "Dense(16, relu)",

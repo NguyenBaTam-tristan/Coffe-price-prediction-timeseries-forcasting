@@ -46,6 +46,7 @@ coffee_clean.csv  weather_clean.csv  merged_daily.csv
                                              |
                                              v
                                   training_dataset.csv
+                                  training_dataset_coffee_only.csv
                                              |
                          +-----------------+------------------+
                          |                 |                  |
@@ -73,16 +74,9 @@ coffee_clean.csv  weather_clean.csv  merged_daily.csv
 ├── models/                          # Metrics và model artifacts
 ├── src/
 │   ├── pipeline.py                  # Cleaning, merge, feature engineering
-│   ├── train_models.py              # Entry point huấn luyện model
-│   └── modeling/
-│       ├── config.py                # Cấu hình chung và đường dẫn
-│       ├── data.py                  # Load, chọn feature, chia dữ liệu
-│       ├── metrics.py               # Chỉ số đánh giá
-│       ├── artifacts.py             # Lưu model và kết quả
-│       ├── runner.py                # Điều phối quy trình huấn luyện
-│       └── trainers/                # Mỗi model có trainer riêng
+│   └── train_models.py              # Cấu hình, huấn luyện và so sánh model
 ├── tests/
-│   └── test_modeling.py             # Unit test cho chuẩn bị dữ liệu và metrics
+│   └── test_train_models.py         # Unit test cho chuẩn bị dữ liệu và model
 ├── requirements.txt
 └── README.md
 ```
@@ -121,6 +115,7 @@ Kết quả:
 - `data/processed/weather_clean.csv`
 - `data/processed/merged_daily.csv`
 - `data/features/training_dataset.csv`
+- `data/features/training_dataset_coffee_only.csv` (giá cà phê và calendar features, không có thời tiết)
 
 Pipeline merge bằng cột `date`. Feature rolling dùng `.shift(1)` trước khi tính trung bình để không lấy thông tin tương lai. Target `next_day_price` là giá của ngày kế tiếp.
 
@@ -151,10 +146,24 @@ Kết quả được lưu tại:
 - `models/lstm/` (khi TensorFlow đã được cài đặt)
 
 Mỗi model gồm `model.pkl` hoặc `model.keras`, `metrics.json` và `feature_columns.json`.
-Trainer được đăng ký trong `src/modeling/trainers/__init__.py`. Để thêm model,
-tạo trainer mới nhận `train` và `test`, trả về metrics dict (hoặc `None` nếu
-model optional bị bỏ qua), sau đó thêm trainer vào `MODEL_TRAINERS`.
-Các bước chuẩn bị dữ liệu, lưu artifact và sắp xếp bảng so sánh được dùng chung.
+Phần cấu hình và hàm huấn luyện của các model đều nằm trong
+`src/train_models.py`.
+
+LSTM dự đoán mức thay đổi từ `coffee_price` sang `next_day_price`, rồi cộng thay đổi
+vào giá hiện tại. Feature được chuẩn hóa bên trong model; thống kê chuẩn hóa chỉ
+được học từ phần train. Khi đánh giá, 29 ngày cuối của train được giữ làm ngữ cảnh
+cho các chuỗi test để không bỏ các ngày đầu của test set.
+
+Để huấn luyện và so sánh riêng trên giá cà phê (không dùng thời tiết), trước tiên
+tạo dataset bằng pipeline ở bước 1, sau đó chạy:
+
+```powershell
+python .\src\train_models_coffee_only.py
+```
+
+Dataset đầu vào là `data/features/training_dataset_coffee_only.csv`. Model và
+bảng so sánh của lần chạy này được lưu riêng trong `models/coffee_only/`, không
+ghi đè artifacts của lần huấn luyện có thời tiết.
 
 Chạy unit test từ thư mục gốc project:
 

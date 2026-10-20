@@ -88,12 +88,13 @@ def build_features(merged):
         ("temperature_2m_mean", "temperature_mean"),
         ("relative_humidity_2m_mean", "humidity_mean"),
     ):
-        features[f"{name}_7d"] = features[column].shift(1).rolling(7).mean()
-        features[f"{name}_30d"] = features[column].shift(1).rolling(30).mean()
+        if column in features:
+            features[f"{name}_7d"] = features[column].shift(1).rolling(7).mean()
+            features[f"{name}_30d"] = features[column].shift(1).rolling(30).mean()
 
-    features["day_of_week"] = features["date"].dt.dayofweek
+    features["day_of_week"]  = features["date"].dt.dayofweek
     features["day_of_month"] = features["date"].dt.day
-    features["month"] = features["date"].dt.month
+    features["month"]   = features["date"].dt.month
     features["quarter"] = features["date"].dt.quarter
 
     # Dataset coffee đầy đủ theo ngày nên target là giá của ngày kế tiếp.
@@ -101,6 +102,14 @@ def build_features(merged):
     features["next_day_price"] = price.shift(-1)
     features["date_gap_days"] = features["date"].shift(-1).sub(features["date"]).dt.days
     return features.dropna().reset_index(drop=True)
+
+
+def build_coffee_only_features(coffee):
+    """Create training features using coffee prices only, without weather inputs."""
+    coffee_prices = coffee[["date", "price"]].rename(
+        columns={"price": "coffee_price"}
+    )
+    return build_features(coffee_prices)
 
 
 def main():
@@ -111,16 +120,23 @@ def main():
     weather = clean_weather()
     merged = coffee.merge(weather, on="date", how="inner").rename(columns={"price": "coffee_price"}).sort_values("date")
     features = build_features(merged)
+    coffee_only_features = build_coffee_only_features(coffee)
 
     coffee.to_csv(PROCESSED_DIR / "coffee_clean.csv", index=False, date_format="%Y-%m-%d")
     weather.to_csv(PROCESSED_DIR / "weather_clean.csv", index=False, date_format="%Y-%m-%d")
     merged.to_csv(PROCESSED_DIR / "merged_daily.csv", index=False, date_format="%Y-%m-%d")
     features.to_csv(FEATURES_DIR / "training_dataset.csv", index=False, date_format="%Y-%m-%d")
+    coffee_only_features.to_csv(
+        FEATURES_DIR / "training_dataset_coffee_only.csv",
+        index=False,
+        date_format="%Y-%m-%d",
+    )
 
     print(f"coffee_clean: {len(coffee)} dòng")
     print(f"weather_clean: {len(weather)} dòng")
     print(f"merged_daily: {len(merged)} dòng")
     print(f"training_dataset: {len(features)} dòng")
+    print(f"training_dataset_coffee_only: {len(coffee_only_features)} dòng")
 
 
 if __name__ == "__main__":
