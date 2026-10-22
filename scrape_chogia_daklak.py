@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from html.parser import HTMLParser
 from urllib.request import Request, urlopen
 
-
+#Trình phân tích HTML
 SOURCE_URL = "https://chogia.vn/gia-ca-phe-dak-lak-hom-nay/"
 DEFAULT_OUTPUT = "data/raw/coffee/coffee_daklak_raw12345.csv"
 SOURCE_NAME = "Chợ Giá"
@@ -14,7 +14,7 @@ PRODUCT_NAME = "Cà phê"
 PROVINCE_NAME = "Đắk Lắk"
 PRICE_UNIT = "VND/kg"
 
-
+#Khởi tạo các biến trạng thái (đang ở trong bảng nào, hàng nào, ô nào...).
 class PriceTableParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -25,7 +25,7 @@ class PriceTableParser(HTMLParser):
         self.cell_text = []
         self.row = []
         self.rows = []
-
+#Lấy phần văn bản (text) nằm bên trong các thẻ rồi (ô của bảng) và lưu vào danh sách 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
         if tag == "table" and attributes.get("id") == "cf_df":
@@ -39,11 +39,13 @@ class PriceTableParser(HTMLParser):
         elif self.in_row and tag == "td":
             self.in_cell = True
             self.cell_text = []
-
+#Khi gặp thẻ đóng
     def handle_endtag(self, tag):
+        #Nối các chữ trong ô lại thành một chuỗi hoàn chỉnh
         if self.in_target_table and tag == "td" and self.in_cell:
             self.row.append("".join(self.cell_text).strip())
             self.in_cell = False
+        #Kiểm tra xem hàng đó có đủ 3 cột (Ngày, Giá, Thay đổi) và cột đầu tiên có đúng định dạng ngày tháng. Nếu đúng thì lưu 
         elif self.in_target_table and tag == "tr" and self.in_row:
             if len(self.row) >= 3 and re.fullmatch(r"\d{2}-\d{2}-\d{4}", self.row[0]):
                 self.rows.append(self.row[:3])
@@ -57,7 +59,7 @@ class PriceTableParser(HTMLParser):
         if self.in_cell:
             self.cell_text.append(data)
 
-
+#Hàm làm sạch chuỗi
 def parse_integer(value):
     value = value.strip().replace(".", "").replace(",", "")
     if value in {"", "-"}:
@@ -66,7 +68,7 @@ def parse_integer(value):
     value = value.lstrip("+-")
     return sign * int(value)
 
-
+# Tải và gom dữ liệu
 def fetch_rows():
     request = Request(SOURCE_URL, headers={"User-Agent": "Mozilla/5.0"})
     with urlopen(request, timeout=30) as response:
@@ -82,13 +84,14 @@ def fetch_rows():
         }
     return list(rows_by_date.values())
 
-
+# Luồng 
 def main():
+    # Nhận
     argument_parser = argparse.ArgumentParser(description="Cào giá cà phê Đắk Lắk từ Chợ Giá.")
     argument_parser.add_argument("--output", default=DEFAULT_OUTPUT)
     argument_parser.add_argument("--days", type=int, default=895, help="Số ngày cần kiểm tra, mặc định khoảng 3 năm.")
     args = argument_parser.parse_args()
-
+#lọc
     rows = fetch_rows()
     end_date = max(row["date"] for row in rows)
     start_date = end_date - timedelta(days=args.days - 1)
@@ -103,7 +106,7 @@ def main():
         import os
 
         os.makedirs(output_directory, exist_ok=True)
-
+#ghi file 
     with open(output_path, "w", newline="", encoding="utf-8") as output_file:
         writer = csv.DictWriter(
             output_file,
