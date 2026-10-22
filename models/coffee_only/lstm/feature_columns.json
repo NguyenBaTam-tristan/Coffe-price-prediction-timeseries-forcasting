@@ -1,0 +1,18 @@
+[
+  "coffee_price",
+  "price_lag_1",
+  "price_lag_2",
+  "price_lag_3",
+  "price_lag_7",
+  "price_lag_14",
+  "price_lag_30",
+  "price_mean_7",
+  "price_std_7",
+  "price_mean_14",
+  "price_mean_30",
+  "price_std_30",
+  "day_of_week",
+  "day_of_month",
+  "month",
+  "quarter"
+]

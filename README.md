@@ -7,7 +7,7 @@ Project Machine Learning dự đoán giá cà phê tại tỉnh Đắk Lắk the
 - Làm sạch và kiểm tra dữ liệu giá cà phê.
 - Kết hợp giá cà phê với thời tiết theo từng ngày.
 - Tạo lag features, rolling features và calendar features.
-- So sánh Linear Regression, Random Forest và XGBoost.
+- So sánh Linear Regression, Random Forest, XGBoost và mô hình LSTM theo chuỗi thời gian.
 - Đánh giá model bằng MAE, RMSE và R².
 - Tuân thủ chronological split, không shuffle dữ liệu time series và không dùng dữ liệu tương lai.
 
@@ -46,14 +46,16 @@ coffee_clean.csv  weather_clean.csv  merged_daily.csv
                                              |
                                              v
                                   training_dataset.csv
+                                  training_dataset_coffee_only.csv
                                              |
                          +-----------------+------------------+
                          |                 |                  |
                          v                 v                  v
-                           Linear Regression   Tree models
+                    Linear Regression   Tree models   LSTM sequence model
                                         |             Random Forest
                                         |               XGBoost
-                         +-----------------+------------------+
+                                        |                  |
+                                        +------------------+
                                              |
                                              v
                                   models/model_comparison.csv
@@ -72,7 +74,9 @@ coffee_clean.csv  weather_clean.csv  merged_daily.csv
 ├── models/                          # Metrics và model artifacts
 ├── src/
 │   ├── pipeline.py                  # Cleaning, merge, feature engineering
-│   └── train_models.py              # Huấn luyện và so sánh model
+│   └── train_models.py              # Cấu hình, huấn luyện và so sánh model
+├── tests/
+│   └── test_train_models.py         # Unit test cho chuẩn bị dữ liệu và model
 ├── requirements.txt
 └── README.md
 ```
@@ -111,6 +115,7 @@ Kết quả:
 - `data/processed/weather_clean.csv`
 - `data/processed/merged_daily.csv`
 - `data/features/training_dataset.csv`
+- `data/features/training_dataset_coffee_only.csv` (giá cà phê và calendar features, không có thời tiết)
 
 Pipeline merge bằng cột `date`. Feature rolling dùng `.shift(1)` trước khi tính trung bình để không lấy thông tin tương lai. Target `next_day_price` là giá của ngày kế tiếp.
 
@@ -138,8 +143,33 @@ Kết quả được lưu tại:
 - `models/linear_regression/`
 - `models/random_forest/`
 - `models/xgboost/`
+- `models/lstm/` (khi TensorFlow đã được cài đặt)
 
-Mỗi model gồm `model.pkl`, `metrics.json` và `feature_columns.json`.
+Mỗi model gồm `model.pkl` hoặc `model.keras`, `metrics.json` và `feature_columns.json`.
+Phần cấu hình và hàm huấn luyện của các model đều nằm trong
+`src/train_models.py`.
+
+LSTM dự đoán mức thay đổi từ `coffee_price` sang `next_day_price`, rồi cộng thay đổi
+vào giá hiện tại. Feature được chuẩn hóa bên trong model; thống kê chuẩn hóa chỉ
+được học từ phần train. Khi đánh giá, 29 ngày cuối của train được giữ làm ngữ cảnh
+cho các chuỗi test để không bỏ các ngày đầu của test set.
+
+Để huấn luyện và so sánh riêng trên giá cà phê (không dùng thời tiết), trước tiên
+tạo dataset bằng pipeline ở bước 1, sau đó chạy:
+
+```powershell
+python .\src\train_models_coffee_only.py
+```
+
+Dataset đầu vào là `data/features/training_dataset_coffee_only.csv`. Model và
+bảng so sánh của lần chạy này được lưu riêng trong `models/coffee_only/`, không
+ghi đè artifacts của lần huấn luyện có thời tiết.
+
+Chạy unit test từ thư mục gốc project:
+
+```powershell
+python -m unittest discover -s tests
+```
 
 ## Feature engineering
 

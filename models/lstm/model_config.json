@@ -1,0 +1,18 @@
+{
+  "sequence_length": 30,
+  "target_mode": "next_day_price - coffee_price; add predicted change to current price",
+  "target_scale": 1000.0,
+  "architecture": [
+    "Normalization(axis=-1)",
+    "LSTM(32)",
+    "Dropout(0.2)",
+    "Dense(16, relu)",
+    "Dense(1)"
+  ],
+  "loss": "mse",
+  "optimizer": "adam",
+  "early_stopping": {
+    "monitor": "val_loss",
+    "patience": 8
+  }
+}
